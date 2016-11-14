@@ -153,7 +153,7 @@ rm(data, inTrain)</code></pre>
 <div id="model-training" class="section level1">
 <h1>Model Training</h1>
 <p>I decided to go with the Random Forest algorithm because it is a very powerful general purpose algorithm. It should be able to handle the data well without any sort of normalization required, and it will pick up on any variable interactions automatically. This will allow me to get a good fit of the data without pre-processing it or manually determining the interactions in advance, giving it a strong advantage over traditional regression. As a trade-off, it is slightly less interpretable.</p>
-<p>Random Forest is also relatively simple to tune. The main parameter is “mtry” which represents the number of variables randomly selected for each individual tree in the forest. I did an exhaustive search of all possible values of mtry, selecting the mtry value giving the highest accuracy using 5-fold cross validation.</p>
+<p>Random Forest is also relatively simple to tune. The main parameter is "mtry" which represents the number of variables randomly selected for each individual tree in the forest. I did an exhaustive search of all possible values of mtry, selecting the mtry value giving the highest accuracy using 5-fold cross validation.</p>
 <pre class="r"><code>library(caret)
 library(doMC)
 registerDoMC(cores=8) # configures R for multiple CPU cores for a great speedup
@@ -221,7 +221,7 @@ confusionMatrix(pred, test$classe)</code></pre>
 </div>
 <div id="conclusion" class="section level1">
 <h1>Conclusion</h1>
-<p>The model performs very well, with accuracy quite close to 100%.</p>
+<p>The model performs very well, with accuracy quite close to 100%. The out of sample error is easily less than 0.5%.</p>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
