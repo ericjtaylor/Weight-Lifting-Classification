@@ -1,0 +1,85 @@
+---
+title: "Weight Lifting Classification Model"
+author: "Eric Taylor"
+date: "November 13, 2016"
+output: html_document
+---
+
+# Executive Summary
+
+Using the Human Activity Recognition dataset (see reference), my objective is to identify the type of weight lifting exercise performed using accelerometer data from a wearable computing device (eg. Fitbit).
+
+# Data Preparation
+
+Data was downloaded from the Coursera website. After reviewing the dataset, 2 important things stuck out:  
+
+First, the initial columns are metadata about the specific trial (eg. trial number, participant name, timestamp, etc) which is not data from the device and must therefore be removed. Failure to do this could build a model in a nonsensical way depending on how they structured the experiment (eg. Between 3pm and 4pm it must be exercise X). To prevent these kinds of failures, I removed these columns from the dataset.  
+
+Secondly, many of the columns are almost entirely missing values. They are therefore of extremely limited use in fitting a model. I therefore removed them from the dataset.  
+
+Finally, I divided the data into a standard 70:30 split of train and test.
+
+```{r, message=FALSE}
+library(caret)
+
+# load data
+data <- read.csv('pml-training.csv')
+quiz <- read.csv('pml-testing.csv')
+data <- data[8:160] # remove metadata (sequence number, timestamp, user name, etc)
+quiz <- quiz[8:160] # remove metadata (sequence number, timestamp, user name, etc)
+data <- data[colSums(is.na(quiz)) == 0] # remove columns with null values
+quiz <- quiz[colSums(is.na(quiz)) == 0] # remove columns with null values
+
+# split data into train and test
+set.seed(112233)
+inTrain <- createDataPartition(y=data$classe, p=0.70, list=FALSE)
+train <- data[inTrain,]
+test <- data[-inTrain,]
+rm(data, inTrain)
+
+```
+
+# Model Training
+
+I decided to go with the Random Forest algorithm because it is a very powerful general purpose algorithm. It should be able to handle the data well without any sort of normalization required, and it will pick up on any variable interactions automatically. This will allow me to get a good fit of the data without pre-processing it or manually determining the interactions in advance, giving it a strong advantage over traditional regression. As a trade-off, it is slightly less interpretable.
+
+Random Forest is also relatively simple to tune. The main parameter is "mtry" which represents the number of variables randomly selected for each individual tree in the forest. I did an exhaustive search of all possible values of mtry, selecting the mtry value giving the highest accuracy using 5-fold cross validation.
+
+```{r, message=FALSE}
+library(caret)
+library(doMC)
+registerDoMC(cores=8) # configures R for multiple CPU cores for a great speedup
+
+set.seed(445566)
+rf <- train(
+    classe~.,
+    data=train,method="rf",
+    trControl=trainControl(method="cv", number=5),
+    tuneLength=51
+)
+```
+
+```{r, echo=FALSE}
+plot(rf)
+print(rf$finalModel)
+#varImp(rf)
+#print(rf)
+```
+
+# Performance Evaluation
+
+For an unbiased evaluation of the accuracy, I will now use the model on the test set.
+
+```{r}
+pred <- predict(rf, test)
+confusionMatrix(pred, test$classe)
+```
+
+# Conclusion
+
+The model performs very well, with accuracy quite close to 100%. The out of sample error is easily less than 5%.
+
+# References
+
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+
